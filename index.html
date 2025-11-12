@@ -56,8 +56,8 @@
     </div>
     <div>
       <h4>Contacto</h4>
-      <p>WhatsApp: <a href="https://wa.me/18090000000" target="_blank">+1 809 000 0000</a></p>
-      <p>Tel: <a href="tel:+18090000000">+1 809 000 0000</a></p>
+      <p>WhatsApp: <a href="https://wa.me/18096176188" target="_blank">+1 18096176188</a></p>
+      <p>Tel: <a href="tel:+18096176188">+1 18096176188</a></p>
       <p>Email: <a href="mailto:ventas@keepitgreat.do">ventas@keepitgreat.do</a></p>
       <p>Dirección: Av. Ejemplo #123, Santo Domingo</p>
     </div>
@@ -76,6 +76,24 @@
   <span class="cart-count" id="cart-count-2">0</span>
   <button class="btn" onclick="Shop.viewCart()">Ver</button>
   <button class="btn" onclick="Shop.closeCart()">X</button>
+</div>
+
+<!-- CART DRAWER -->
+<div id="cart-backdrop" class="backdrop" style="display:none" onclick="Shop.closeCart()"></div>
+<div id="cart-drawer" class="drawer" style="display:none">
+  <div class="drawer-head">
+    <strong>Tu carrito</strong>
+    <button class="btn" onclick="Shop.closeCart()">Cerrar</button>
+  </div>
+  <div id="cart-items" class="drawer-body"></div>
+  <div class="drawer-foot">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <strong>Total</strong>
+      <strong id="cart-total">RD$ 0</strong>
+    </div>
+    <button class="btn btn-primary" onclick="Shop.checkout()">Pagar ahora</button>
+    <small style="opacity:.7">* Demo sin pago real. El stock se descuenta al pagar.</small>
+  </div>
 </div>
 
 <script src="app.js"></script>

@@ -24,9 +24,7 @@ const Admin = (()=>{
     render();
   }
 
-  function saveLocal(){
-    localStorage.setItem('kg_products', JSON.stringify(products));
-  }
+  function saveLocal(){ localStorage.setItem('kg_products', JSON.stringify(products)); }
 
   function tableHead(){
     const t = document.getElementById('table');
@@ -83,8 +81,7 @@ const Admin = (()=>{
 
   function remove(i){
     if(!confirm('Eliminar este producto?')) return;
-    products.splice(i,1);
-    saveLocal(); render();
+    products.splice(i,1); saveLocal(); render();
   }
 
   function save(){
@@ -102,16 +99,13 @@ const Admin = (()=>{
     if(!p.id || !p.name){ alert('ID y Nombre son requeridos'); return; }
     if(editIndex>-1){ products[editIndex]=p; editIndex=-1; }
     else{ products.unshift(p); }
-    saveLocal();
-    render();
-    document.getElementById('formBox').style.display='none';
+    saveLocal(); render(); document.getElementById('formBox').style.display='none';
   }
 
   function exportJSON(){
     const blob = new Blob([JSON.stringify(products, null, 2)], {type:'application/json'});
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'products-export.json'; a.click();
+    const a = document.createElement('a'); a.href=url; a.download='products-export.json'; a.click();
     URL.revokeObjectURL(url);
   }
 
