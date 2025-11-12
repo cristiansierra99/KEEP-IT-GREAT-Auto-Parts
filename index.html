@@ -1,0 +1,83 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>KEEP IT GREAT Auto Parts — Tienda</title>
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<header class="header">
+  <div class="header-inner container">
+    <div class="logo">
+      <img src="assets/logo.png" alt="logo"/>
+      <span>KEEP IT GREAT <small style="opacity:.6">Auto Parts</small></span>
+    </div>
+    <div class="search">
+      <input id="q" placeholder="Buscar por nombre, marca, vehículo, código..."/>
+      <button onclick="Shop.search()">Buscar</button>
+    </div>
+    <div class="top-actions">
+      <a class="btn" href="admin.html">Admin</a>
+      <button class="btn btn-primary" onclick="Shop.openCart()">Carrito <span class="badge" id="cart-count">0</span></button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <div class="grid">
+    <aside class="sidebar">
+      <h3>Categorías</h3>
+      <div id="cats"></div>
+    </aside>
+    <section>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h2>Productos</h2>
+        <div>
+          <select id="sort" onchange="Shop.render()">
+            <option value="pop">Más populares</option>
+            <option value="price_asc">Precio: menor a mayor</option>
+            <option value="price_desc">Precio: mayor a menor</option>
+            <option value="name_asc">Nombre A-Z</option>
+          </select>
+        </div>
+      </div>
+      <div id="products" class="products"></div>
+    </section>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="cols container">
+    <div>
+      <img src="assets/logo.png" alt="logo" style="height:36px;filter:brightness(10)"/>
+      <p>Repuestos y accesorios con envío a todo el país. Calidad OEM y marcas premium.</p>
+    </div>
+    <div>
+      <h4>Contacto</h4>
+      <p>WhatsApp: <a href="https://wa.me/18090000000" target="_blank">+1 809 000 0000</a></p>
+      <p>Tel: <a href="tel:+18090000000">+1 809 000 0000</a></p>
+      <p>Email: <a href="mailto:ventas@keepitgreat.do">ventas@keepitgreat.do</a></p>
+      <p>Dirección: Av. Ejemplo #123, Santo Domingo</p>
+    </div>
+    <div>
+      <h4>Empresa</h4>
+      <p><a href="#">Políticas de garantía</a></p>
+      <p><a href="#">Términos y condiciones</a></p>
+      <p><a href="#">Devoluciones</a></p>
+    </div>
+  </div>
+  <small>© <span id="year"></span> KEEP IT GREAT Auto Parts. Todos los derechos reservados.</small>
+</footer>
+
+<div class="cart" id="cart" style="display:none">
+  <strong>Carrito</strong>
+  <span class="cart-count" id="cart-count-2">0</span>
+  <button class="btn" onclick="Shop.viewCart()">Ver</button>
+  <button class="btn" onclick="Shop.closeCart()">X</button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
