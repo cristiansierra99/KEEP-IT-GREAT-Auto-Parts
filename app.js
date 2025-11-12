@@ -1,13 +1,16 @@
-
 const Shop = (()=>{
   const state = {
+    priceRange: {min:null, max:null},
+    viewing: null,
+    checkoutOpen: false,
+    orders: JSON.parse(localStorage.getItem('kg_orders')||'[]'),
     products: [],
     categories: [],
     categoryActive: 'all',
     cart: JSON.parse(localStorage.getItem('kg_cart')||'[]')
   };
 
-  const fmtRD = n => 'RD$ ' + Number(n||0).toLocaleString('es-DO',{minimumFractionDigits:0});
+  const fmtRD = n => 'RD$ ' + Number(n||0).toLocaleString('es-DO',{minimumFractionDigits:2});
 
   async function load(){
     const local = localStorage.getItem('kg_products');
@@ -33,14 +36,33 @@ const Shop = (()=>{
       div.onclick = ()=>{ state.categoryActive=c; render(); };
       box.appendChild(div);
     });
+
+    const brandSel = document.getElementById('brandFilter');
+    if(brandSel){
+      const brands = Array.from(new Set(state.products.map(p=>p.brand).filter(Boolean))).sort();
+      brandSel.innerHTML = '<option value="all">Todas las marcas</option>' + brands.map(b=>`<option value="${b}">${b}</option>`).join('');
+    }
   }
 
   function search(){ state.categoryActive='all'; render(); }
+  function applyPrice(){
+    const min = parseFloat(document.getElementById('minPrice')?.value||'');
+    const max = parseFloat(document.getElementById('maxPrice')?.value||'');
+    state.priceRange.min = isNaN(min)? null : min;
+    state.priceRange.max = isNaN(max)? null : max;
+    render();
+  }
 
   function render(){
     const q = (document.getElementById('q')?.value||'').toLowerCase();
     let list = state.products.filter(p=> !q || [p.name,p.brand,p.id,(p.tags||[]).join(' ')].join(' ').toLowerCase().includes(q));
     if(state.categoryActive!=='all') list = list.filter(p=>p.category===state.categoryActive);
+
+    const brandSel = document.getElementById('brandFilter');
+    const brandVal = brandSel? brandSel.value : 'all';
+    if(brandVal && brandVal!=='all'){ list = list.filter(p=>p.brand===brandVal); }
+    if(state.priceRange.min!=null){ list = list.filter(p=> (p.price||0) >= state.priceRange.min ); }
+    if(state.priceRange.max!=null){ list = list.filter(p=> (p.price||0) <= state.priceRange.max ); }
 
     const sortSel = document.getElementById('sort'); const sort = sortSel? sortSel.value: 'pop';
     if(sort==='price_asc') list.sort((a,b)=>a.price-b.price);
@@ -52,6 +74,7 @@ const Shop = (()=>{
       const oos = (p.stock||0) <= 0;
       const card = document.createElement('div');
       card.className = 'card';
+      card.onclick = ()=>Shop.openProduct(p.id);
       card.innerHTML = `
         <img src="${p.image||'https://placehold.co/600x400?text=Producto'}" alt="${p.name}">
         <div class="body">
@@ -64,7 +87,7 @@ const Shop = (()=>{
           <div class="stock-left">${oos? '': `Stock: ${p.stock}`}</div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
             <div class="price">${fmtRD(p.price)}</div>
-            <button class="btn btn-primary" ${oos?'disabled':''} onclick='Shop.addToCart("${p.id}")'>${oos?'Agotado':'Agregar'}</button>
+            <button class="btn btn-primary" ${oos?'disabled':''} onclick='event.stopPropagation();Shop.addToCart("${p.id}")'>${oos?'Agotado':'Agregar'}</button>
           </div>
         </div>`;
       box.appendChild(card);
@@ -88,11 +111,11 @@ const Shop = (()=>{
     syncCart(); openCart();
   }
 
-  // Drawer (cart)
   function openCart(){ const b=document.getElementById('cart-backdrop'); const d=document.getElementById('cart-drawer'); if(b) b.style.display='block'; if(d) d.style.display='flex'; const f=document.getElementById('cart'); if(f) f.style.display='none'; renderCart(); }
-  function closeCart(){ const b=document.getElementById('cart-backdrop'); const d=document.getElementById('cart-drawer'); if(b) b.style.display='none'; if(d) d.style.display='none'; }
+  function closeCart(){ const b=document.getElementById('cart-backdrop'); const d=document.getElementById('cart-drawer'); if(b) b.style.display='none'; if(d) d.style.display='none'; const f=document.getElementById('cart'); if(f) f.style.display=''; }
 
   function renderCart(){
+    const cf=document.getElementById('checkout-form'); if(cf) { cf.style.display='none'; cf.innerHTML=''; }
     const box = document.getElementById('cart-items'); if(!box) return;
     box.innerHTML='';
     if(state.cart.length===0){ box.innerHTML='<p class="muted">Tu carrito está vacío.</p>'; const ct=document.getElementById('cart-total'); if(ct) ct.textContent=fmtRD(0); return; }
@@ -139,24 +162,94 @@ const Shop = (()=>{
 
   function viewCart(){ openCart(); }
 
-  function checkout(){
-    if(state.cart.length===0){ alert('Carrito vacío'); return; }
+  function openProduct(id){
+    const p = state.products.find(x=>x.id===id); if(!p) return;
+    state.viewing = p;
+    const b = document.getElementById('product-backdrop'); const d = document.getElementById('product-modal');
+    if(b) b.style.display='block'; if(d) d.style.display='flex';
+    const body = document.getElementById('pd-body'); const foot = document.getElementById('pd-foot'); const title = document.getElementById('pd-title');
+    if(title) title.textContent = p.name;
+    if(body) body.innerHTML = `
+      <div class="pd-grid">
+        <img class="pd-img" src="${p.image||'https://placehold.co/800x600?text=Producto'}" alt="${p.name}"/>
+        <div>
+          <div class="brand">${p.brand||''} • <small>${p.id||''}</small></div>
+          <h3 style="margin:6px 0">${p.name}</h3>
+          <div>${p.description||''}</div>
+          <div style="margin:8px 0" class="stock-left">${(p.stock||0)<=0?'<span class="badge-oos">Agotado</span>':'Stock: '+p.stock}</div>
+          <div class="price" style="font-size:22px">${fmtRD(p.price)}</div>
+        </div>
+      </div>`;
+    if(foot) foot.innerHTML = `<button class="btn" onclick="Shop.closeProduct()">Cerrar</button>
+      <button class="btn btn-primary" ${ (p.stock||0)<=0 ? 'disabled' : '' } onclick="Shop.addToCart('${p.id}')">${ (p.stock||0)<=0 ? 'Agotado' : 'Agregar al carrito'}</button>`;
+  }
+  function closeProduct(){ const b=document.getElementById('product-backdrop'); const d=document.getElementById('product-modal'); if(b) b.style.display='none'; if(d) d.style.display='none'; state.viewing=null; }
+
+  function showCheckout(){
+    const form = document.getElementById('checkout-form'); if(!form) return;
+    const subtotal = state.cart.reduce((s,x)=>s+x.price*x.qty,0);
+    const itbis = subtotal * 0.18;
+    const envio = subtotal >= 5000 ? 0 : 250;
+    const total = subtotal + itbis + envio;
+    form.style.display = 'block';
+    form.innerHTML = `
+      <h3>Datos de pago y envío</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <input id="c_name" placeholder="Nombre y Apellido"/>
+        <input id="c_phone" placeholder="Teléfono"/>
+        <input id="c_address" placeholder="Dirección de envío" style="grid-column:span 2"/>
+        <select id="c_method">
+          <option value="contraentrega">Contraentrega</option>
+          <option value="transferencia">Transferencia</option>
+        </select>
+        <select id="c_envio">
+          <option value="${envio}">${envio===0?'Envío gratis':'Envío: '+fmtRD(envio)}</option>
+        </select>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px">
+        <div class="muted">Subtotal</div><div>${fmtRD(subtotal)}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <div class="muted">ITBIS 18%</div><div>${fmtRD(itbis)}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <div class="muted">Envío</div><div>${fmtRD(envio)}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-weight:800">
+        <div>Total</div><div>${fmtRD(total)}</div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:8px" onclick="Shop.confirmCheckout()">Confirmar compra</button>
+    `;
+  }
+
+  function confirmCheckout(){
+    const name = document.getElementById('c_name')?.value?.trim();
+    const phone = document.getElementById('c_phone')?.value?.trim();
+    if(!name || !phone){ alert('Completa nombre y teléfono'); return; }
+    const subtotal = state.cart.reduce((s,x)=>s+x.price*x.qty,0);
+    const itbis = subtotal * 0.18;
+    const envio = parseFloat(document.getElementById('c_envio')?.value||'0');
+    const total = subtotal + itbis + envio;
+
     for(const it of state.cart){
       const p = state.products.find(x=>x.id===it.id);
-      if(!p){ alert(`Producto no encontrado: ${it.id}`); return; }
-      if(it.qty > (p.stock||0)){ alert(`Stock insuficiente para ${p.name}`); return; }
+      if(it.qty > (p.stock||0)){ alert('Stock insuficiente'); return; }
     }
     for(const it of state.cart){
       const p = state.products.find(x=>x.id===it.id);
       p.stock = (p.stock||0) - it.qty;
     }
     localStorage.setItem('kg_products', JSON.stringify(state.products));
-    const orderId = 'KG-' + Math.floor(Math.random()*1e6).toString().padStart(6,'0');
-    state.cart = []; syncCart(); render(); closeCart();
-    alert('¡Gracias por tu compra!\\nOrden: ' + orderId + '\\nEl stock fue actualizado.');
+
+    const order = { id:'KG-'+Math.floor(Math.random()*1e6).toString().padStart(6,'0'), date:new Date().toISOString(), name, phone, address:document.getElementById('c_address')?.value||'', method:document.getElementById('c_method')?.value||'contraentrega', items: state.cart.map(x=>({...x})), subtotal, itbis, envio, total };
+    const orders = JSON.parse(localStorage.getItem('kg_orders')||'[]'); orders.push(order); localStorage.setItem('kg_orders', JSON.stringify(orders));
+
+    state.cart = []; localStorage.setItem('kg_cart','[]'); updateCartCount(); render(); closeCart(); alert('¡Orden confirmada!\nID: '+order.id);
   }
 
-  return { load, render, search, addToCart, openCart, closeCart, viewCart, incQty, decQty, removeItem, checkout };
+  function checkout(){ showCheckout(); }
+
+  return { load, render, search, addToCart, openCart, closeCart, viewCart, incQty, decQty, removeItem, checkout, applyPrice, openProduct, closeProduct, showCheckout, confirmCheckout };
 })();
 
 window.addEventListener('DOMContentLoaded', Shop.load);

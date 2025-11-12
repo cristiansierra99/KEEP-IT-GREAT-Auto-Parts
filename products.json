@@ -5,6 +5,7 @@
     "brand": "DENSO",
     "category": "filtros",
     "price": 850,
+    "cost": 500,
     "stock": 0,
     "image": "https://placehold.co/600x400?text=Filtro",
     "tags": [
@@ -20,6 +21,7 @@
     "brand": "Akebono",
     "category": "frenos",
     "price": 3450,
+    "cost": 2200,
     "stock": 5,
     "image": "https://placehold.co/600x400?text=Frenos",
     "tags": [

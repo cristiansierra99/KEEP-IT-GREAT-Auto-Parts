@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="es">
 <head>
@@ -33,7 +32,17 @@
     </aside>
     <section>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <h2>Productos</h2>
+        <div>
+          <h2>Productos</h2>
+          <div class="filters-bar" style="display:flex; gap:8px; align-items:center;">
+            <select id="brandFilter" onchange="Shop.render()">
+              <option value="all">Todas las marcas</option>
+            </select>
+            <input id="minPrice" type="number" placeholder="Precio min" style="width:120px"/>
+            <input id="maxPrice" type="number" placeholder="Precio max" style="width:120px"/>
+            <button class="btn" onclick="Shop.applyPrice()">Aplicar</button>
+          </div>
+        </div>
         <div>
           <select id="sort" onchange="Shop.render()">
             <option value="pop">Más populares</option>
@@ -56,8 +65,8 @@
     </div>
     <div>
       <h4>Contacto</h4>
-      <p>WhatsApp: <a href="https://wa.me/18096176188" target="_blank">+1 18096176188</a></p>
-      <p>Tel: <a href="tel:+18096176188">+1 18096176188</a></p>
+      <p>WhatsApp: <a href="https://wa.me/18090000000" target="_blank">+1 809 000 0000</a></p>
+      <p>Tel: <a href="tel:+18090000000">+1 809 000 0000</a></p>
       <p>Email: <a href="mailto:ventas@keepitgreat.do">ventas@keepitgreat.do</a></p>
       <p>Dirección: Av. Ejemplo #123, Santo Domingo</p>
     </div>
@@ -78,6 +87,17 @@
   <button class="btn" onclick="Shop.closeCart()">X</button>
 </div>
 
+<!-- PRODUCT DETAIL MODAL -->
+<div id="product-backdrop" class="backdrop" style="display:none" onclick="Shop.closeProduct()"></div>
+<div id="product-modal" class="drawer" style="display:none; width:720px; max-width:96vw;">
+  <div class="drawer-head">
+    <strong id="pd-title">Detalle</strong>
+    <button class="btn" onclick="Shop.closeProduct()">Cerrar</button>
+  </div>
+  <div class="drawer-body" id="pd-body"></div>
+  <div class="drawer-foot" id="pd-foot"></div>
+</div>
+
 <!-- CART DRAWER -->
 <div id="cart-backdrop" class="backdrop" style="display:none" onclick="Shop.closeCart()"></div>
 <div id="cart-drawer" class="drawer" style="display:none">
@@ -89,13 +109,15 @@
   <div class="drawer-foot">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <strong>Total</strong>
-      <strong id="cart-total">RD$ 0</strong>
+      <strong id="cart-total">RD$ 0.00</strong>
     </div>
-    <button class="btn btn-primary" onclick="Shop.checkout()">Pagar ahora</button>
-    <small style="opacity:.7">* Demo sin pago real. El stock se descuenta al pagar.</small>
+    <button class="btn btn-primary" onclick="Shop.showCheckout()">Ir a pagar</button>
+    <small style="opacity:.7">* Demo sin pago real. El stock se descuenta al confirmar.</small>
   </div>
+  <div id="checkout-form" class="drawer-foot" style="display:none"></div>
 </div>
 
+<script src="config.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
