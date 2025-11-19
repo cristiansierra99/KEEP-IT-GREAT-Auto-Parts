@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>KEEP IT GREAT - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --bg-dark: #020617;
+      --bg-card: #0f172a;
+      --bg-hover: #1e293b;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* Layout principal */
+    .admin-wrapper {
+      min-height: 100vh;
+    }
+
+    /* Auth card */
+    .auth-card {
+      max-width: 400px;
+      margin: 100px auto;
+      padding: 32px;
+      background: var(--bg-card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+
+    .auth-card h2 {
+      margin-bottom: 8px;
+      font-size: 24px;
+    }
+
+    .auth-card .muted {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+      display: block;
+    }
+
+    /* Top bar */
+    .topbar {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      margin-bottom: 16px;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 18px;
+      letter-spacing: 0.5px;
+    }
+
+    .brand .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-top: 16px;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      position: relative;
+      bottom: -1px;
+    }
+
+    .tab:hover {
+      color: var(--text);
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    /* Section */
+    .section {
+      padding: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      align-items: center;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 18px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--muted);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: var(--danger-hover);
+      border-color: var(--danger-hover);
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    /* Inputs */
+    input, textarea, select {
+      font-family: inherit;
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+    }
+
+    input[type="date"] {
+      width: auto;
+    }
+
+    /* Table mejorada */
+    .table-wrapper {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 800px;
+    }
+
+    .table thead {
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .table th {
+      padding: 14px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table tbody tr {
+      transition: background 0.15s;
+    }
+
+    .table tbody tr:hover {
+      background: rgba(59, 130, 246, 0.03);
+    }
+
+    .table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table .actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .table .actions .btn {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    /* Dialog mejorado */
+    .dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      animation: fadeIn 0.2s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .dialog {
+      background: var(--bg-card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: auto;
+      max-width: auto;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      animation: slideUp 0.3s;
+    }
+
+    @keyframes slideUp {
+      from { 
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .dialog h3 {
+      margin-bottom: 24px;
+      font-size: 20px;
+    }
+
+    /* Form grid */
+    .form-grid {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .form-grid label {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .dialog-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Preview imagen */
+    #f_preview {
+      max-width: 200px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    /* Badge de estado */
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .badge-success {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .badge-danger {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .badge-warning {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .topbar {
+        padding: 12px 16px;
+      }
+
+      .section {
+        padding: 16px;
+      }
+
+      .brand strong {
+        font-size: 16px;
+      }
+
+      .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tab {
+        white-space: nowrap;
+        font-size: 13px;
+        padding: 8px 16px;
+      }
+
+      .toolbar {
+        gap: 8px;
+      }
+
+      .toolbar input[type="date"] {
+        width: 100%;
+      }
+
+      .table {
+        font-size: 12px;
+      }
+
+      .table th, .table td {
+        padding: 10px 8px;
+      }
+
+      .dialog {
+        padding: 20px;
+        margin: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-wrapper">
+
+    <!-- LOGIN -->
+    <div id="auth" class="auth-card">
+      <h2>🔐 Panel Admin</h2>
+      <p class="muted">Ingresa la contraseña para administrar la tienda.</p>
+      <input id="pass" type="password" placeholder="Contraseña " onkeypress="if(event.key==='Enter') Admin.login()">
+      <button class="btn btn-primary" onclick="Admin.login()" style="width: 100%; margin-top: 12px;">Entrar</button>
+    </div>
+
+    <!-- PANEL PRINCIPAL -->
+    <div id="panel" class="panel" style="display:none">
+
+      <!-- TOP BAR -->
+      <header class="topbar">
+        <div class="brand">
+          <strong>⚡ KEEP IT GREAT AUTO PARTS</strong>
+          <span class="muted">Panel de administración</span>
+        </div>
+        <nav class="tabs">
+          <button id="tab-products" class="tab active" onclick="Admin.showTab('products')">📦 Productos</button>
+          <button id="tab-orders" class="tab" onclick="Admin.showTab('orders')">🛒 Órdenes</button>
+          <button id="tab-reports" class="tab" onclick="Admin.showTab('reports')">📊 Reportes</button>
+        </nav>
+      </header>
+
+      <!-- SECCIÓN PRODUCTOS -->
+      <section id="section-products" class="section">
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="Admin.openForm()">+ Nuevo producto</button>
+          <button class="btn" onclick="Admin.load()">🔄 Recargar lista</button>
+        </div>
+
+        <div class="table-wrapper">
+          <table id="table" class="table"></table>
+        </div>
+
+        <!-- FORMULARIO PRODUCTO -->
+        <div id="formBox" class="dialog-backdrop" style="display:none">
+          <div class="dialog">
+            <h3 id="formTitle">✏️ Producto</h3>
+            <div class="form-grid">
+              <input id="f_id" placeholder="ID (ej. A001)">
+              <input id="f_name" placeholder="Nombre">
+              <input id="f_brand" placeholder="Marca">
+              <input id="f_category" placeholder="Categoría">
+              <input id="f_price" type="number" step="0.01" placeholder="Precio venta">
+              <input id="f_cost" type="number" step="0.01" placeholder="Costo">
+              <input id="f_stock" type="number" step="1" placeholder="Stock">
+              <input id="f_image" placeholder="URL imagen (opcional)">
+              <label>
+                📸 Subir imagen:
+                <input id="f_image_file" type="file" accept="image/*" onchange="Admin.previewImage(event)">
+              </label>
+              <textarea id="f_desc" rows="3" placeholder="Descripción"></textarea>
+              <label>
+                <input id="f_active" type="checkbox" checked>
+                Activo
+              </label>
+              <img id="f_preview" style="display:none;">
+            </div>
+            <div class="dialog-actions">
+              <button class="btn" onclick="document.getElementById('formBox').style.display='none'">Cancelar</button>
+              <button class="btn btn-primary" onclick="Admin.save()">💾 Guardar</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECCIÓN ÓRDENES -->
+      <section id="section-orders" class="section" style="display:none">
+        <div class="toolbar">
+          <button class="btn" onclick="Admin.loadOrders()">🔄 Recargar órdenes</button>
+        </div>
+        <div class="table-wrapper">
+          <table id="ordersTable" class="table">
+            <!-- Se llena por JS -->
+          </table>
+        </div>
+        <div id="orderDetail" class="dialog-backdrop" style="display:none">
+          <div class="dialog" id="orderDetailContent">
+            <!-- Detalle por JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- SECCIÓN REPORTES -->
+      <section id="section-reports" class="section" style="display:none">
+        <div class="toolbar">
+          <input type="date" id="fromDate">
+          <input type="date" id="toDate">
+          <button class="btn btn-primary" onclick="Admin.showReports()">📈 Ver reporte</button>
+        </div>
+        <div id="reportsBox"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

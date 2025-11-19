@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+   
+ 
+  <title>KEEP IT GREAT AUTO PARTS - Tienda</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <div class="brand">
+       <div class="logo-circle">
+         <img src="https://keep-it-great-autoparts-production.up.railway.app/img/logo22.jpeg" class="logo-img" alt="Logo">
+            </div>
+        <div>
+          <div class="brand-title">KEEP IT GREAT AUTO PARTS</div>
+          <div class="tagline">Piezas y accesorios para mantener tu Vehiculo impecable</div>
+        </div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#9ca3af">
+        <div>Santo Domingo, RD</div>
+        <div>© <span id="year"></span> KEEP IT GREAT</div>
+      </div>
+    </header>
+
+    <section class="filters-card">
+      <div style="flex:1;min-width:180px">
+        <input id="q" style="width:100%" placeholder="Buscar por código, nombre, marca..." oninput="Shop.render()">
+      </div>
+      <div class="chip">Filtrar precio</div>
+      <div>
+        <input id="minPrice" type="number" placeholder="Mín" style="width:80px">
+      </div>
+      <div>
+        <input id="maxPrice" type="number" placeholder="Máx" style="width:80px">
+      </div>
+      <button class="btn" onclick="Shop.applyPrice()">Aplicar</button>
+    </section>
+
+    <div class="categories" id="cats"></div>
+
+    <div class="grid" id="products"></div>
+  </div>
+
+  <div class="cart-fab" onclick="Shop.openCart()" id="cart">
+    <span style="font-size:13px">Carrito</span>
+    <span class="cart-count-pill" id="cart-count">0</span>
+  </div>
+
+  <div class="cart-backdrop" id="cart-backdrop" onclick="Shop.closeCart()"></div>
+  <div class="cart-drawer" id="cart-drawer">
+    <div class="cart-header">
+      <div>
+        <strong>Tu carrito</strong>
+        <div class="muted" style="font-size:11px">Revisa y confirma tu pedido</div>
+      </div>
+      <button class="btn" onclick="Shop.closeCart()">Cerrar</button>
+    </div>
+    <div class="cart-body" id="cart-items"></div>
+    <div class="cart-footer">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="muted">Total</div>
+        <div style="font-weight:800" id="cart-total">RD$ 0.00</div>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="Shop.showCheckout()">Ir a pagar</button>
+      <div id="checkout-form" style="margin-top:10px;display:none"></div>
+    </div>
+  </div>
+
+
+    
+ 
+<footer class="footer">
+  <div class="cols container">
+      <div>
+        <div class="logo-circle">
+          <img src="https://keep-it-great-autoparts-production.up.railway.app/img/logo22.jpeg" class="logo-img" alt="Logo">
+              </div>
+          <div>
+        <p>Repuestos y accesorios con envío a todo el país. Calidad OEM y marcas premium.</p>
+      </div>
+      <div>
+        <h4>Contacto</h4>
+        <p>WhatsApp: <a href="https://wa.me/18096176188" target="_blank">+18096176188</a></p>
+        <p>Tel: <a href="tel:+18096176188">+18096176188</a></p>
+        <p>Email: <a href="mailto:ventas@keepitgreat.do">ventas@keepitgreat.do</a></p>
+        <p>Dirección: Av. Ejemplo #123, Santo Domingo</p>
+      </div>
+      <div>
+        <h4>Empresa</h4>
+        <p><a href="#">Políticas de garantía</a></p>
+        <p><a href="#">Términos y condiciones</a></p>
+        <p><a href="#">Devoluciones</a></p>
+      </div>
+      <small>© <span id="year"></span> KEEP IT GREAT Auto Parts. Todos los derechos reservados.</small>
+    </div>
+ 
+      <div class="logo-gestor-container">
+      <img src="https://keep-it-great-autoparts-production.up.railway.app/img/RayGestor.png" class="logo-Gestor">
+      </div>
+      <div class="logo-gestor-container">
+      <img src="https://keep-it-great-autoparts-production.up.railway.app/img/MrGestor.jpeg" class="logo-Gestor">
+     </div>
+
+    
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
