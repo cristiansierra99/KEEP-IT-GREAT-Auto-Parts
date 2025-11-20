@@ -12,24 +12,54 @@ const Shop = (() => {
   };
 
   // ================== CARGA INICIAL ==================
-  async function load() {
-    try {
-      const r = await fetch(`${API}/api/products`);
-      if (!r.ok) {
-        console.error('Error cargando productos:', r.status, await r.text());
-        alert('No se pudo cargar la lista de productos.');
-        return;
-      }
-      state.products = await r.json();
-      buildCats();
-      render();
-      updateCartCount();
-      const y = $('year'); if (y) y.textContent = new Date().getFullYear();
-    } catch (err) {
-      console.error('Error de conexión al cargar productos:', err);
-      alert('No se pudo conectar con el servidor de productos.');
+async function load() {
+  try {
+    const r = await fetch(`${API}/api/products`);
+    if (!r.ok) {
+      console.error('Error cargando productos:', r.status, await r.text());
+      alert('No se pudo cargar la lista de productos.');
+      return;
     }
+
+    state.products = await r.json();
+    buildCats();       // categorías
+    render();          // pinta productos
+    updateCartCount(); // carrito
+    const y = $('year'); 
+    if (y) y.textContent = new Date().getFullYear();
+  } catch (err) {
+    console.error('Error de conexión al cargar productos:', err);
+    alert('No se pudo conectar con el servidor de productos.');
   }
+}
+
+// ================== AUTO-REFRESH DE PRODUCTOS ==================
+async function refreshProductsIfChanged() {
+  try {
+    const r = await fetch(`${API}/api/products`);
+    if (!r.ok) return;
+
+    const newList = await r.json();
+
+    // Comparación sencilla (para tu catálogo está bien)
+    const changed = JSON.stringify(newList) !== JSON.stringify(state.products);
+    if (changed) {
+      console.log('Productos cambiaron, actualizando vista...');
+      state.products = newList;
+      buildCats();   // por si hay nuevas categorías o productos
+      render();      // vuelve a pintar la lista de productos
+    }
+  } catch (e) {
+    console.error('Error refrescando productos', e);
+  }
+}
+
+// refrescar cada 30 segundos (puedes bajar a 10–15 si quieres algo más “en vivo”)
+setInterval(refreshProductsIfChanged, 10000);
+
+
+// refrescar cada 30 segundos (ajusta a lo que quieras)
+setInterval(refreshProductsIfChanged, 30000);
 
   function buildCats() {
     const set = new Set(state.products.map(p => p.category).filter(Boolean));

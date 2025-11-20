@@ -33,6 +33,7 @@ const Admin = (() => {
     $('panel').style.display = 'block';
     await load();        // carga productos
     await loadOrders();  // precarga órdenes
+    initBulkUpload();
   }
 
   // =============== PRODUCTOS ===============
@@ -80,6 +81,54 @@ const Admin = (() => {
       </tr>`;
     }).join('');
   }
+
+   // =============== CARGA MASIVA (CSV) ===============
+  async function initBulkUpload() {
+    const form = document.getElementById('bulkForm');
+    if (!form) return; // por si la página no tiene el formulario
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById('bulkFile');
+      if (!fileInput || !fileInput.files.length) {
+        alert('Selecciona un archivo CSV');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const fd = new FormData();
+      fd.append('file', file);
+
+      try {
+        const r = await fetch(`${API}/api/products/bulk`, {
+          method: 'POST',
+          body: fd
+        });
+
+        const txt = await r.text(); // para ver detalles si falla
+
+        if (!r.ok) {
+          console.error('Error /api/products/bulk', r.status, txt);
+          alert(`Error cargando productos (${r.status}): ${txt}`);
+          return;
+        }
+
+        let data = {};
+        try { data = txt ? JSON.parse(txt) : {}; } catch { }
+
+        alert(`Productos cargados correctamente. Registros procesados: ${data.count ?? 'N/D'}`);
+
+        // recargar lista de productos
+        await load();
+
+      } catch (err) {
+        console.error('Error de conexión al subir productos', err);
+        alert('Error de conexión subiendo productos');
+      }
+    });
+  }
+
 
   function openForm() {
     editIndex = -1;
@@ -367,6 +416,7 @@ async function loadOrders() {
     showOrderDetail,
     confirmOrder,
     cancelOrder,
-    showReports
+    showReports,
+    initBulkUpload
   };
 })();
