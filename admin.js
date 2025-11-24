@@ -147,110 +147,7 @@ const Admin = (() => {
     }
   }
 
- // async function loadSalesChart() {
-    const canvas = $('salesChart');
-    if (!canvas) return;
-
-    try {
-      const now = new Date();
-      const days = 7;
-      const labels = [];
-      const data = [];
-
-      for (let i = days - 1; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        labels.push(date.toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric' }));
-        
-        // Simular datos (en producción obtener del API)
-        data.push(Math.floor(Math.random() * 50000) + 10000);
-      }
-
-      const ctx = canvas.getContext('2d');
-      
-      // Limpiar canvas anterior
-      if (window.salesChartInstance) {
-        window.salesChartInstance.destroy();
-      }
-
-      // Crear gradiente
-      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-      gradient.addColorStop(0, 'rgba(255, 186, 8, 0.4)');
-      gradient.addColorStop(1, 'rgba(255, 186, 8, 0.05)');
-
-      window.salesChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Ventas (RD$)',
-            data: data,
-            borderColor: '#ffba08',
-            backgroundColor: gradient,
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-            pointBackgroundColor: '#ffba08',
-            pointBorderColor: '#111',
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              backgroundColor: 'rgba(15, 23, 42, 0.95)',
-              titleColor: '#ffba08',
-              bodyColor: '#e5e7eb',
-              borderColor: '#ffba08',
-              borderWidth: 1,
-              padding: 12,
-              displayColors: false,
-              callbacks: {
-                label: function(context) {
-                  return 'Ventas: ' + fmt(context.parsed.y);
-                }
-              }
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              grid: {
-                color: 'rgba(255, 186, 8, 0.1)',
-                drawBorder: false
-              },
-              ticks: {
-                color: '#9ca3af',
-                callback: function(value) {
-                  return 'RD$ ' + (value / 1000).toFixed(0) + 'K';
-                }
-              }
-            },
-            x: {
-              grid: {
-                display: false,
-                drawBorder: false
-              },
-              ticks: {
-                color: '#9ca3af'
-              }
-            }
-          }
-        }
-      });
-
-    } catch (err) {
-      console.error('Error cargando gráfico:', err);
-    }
-  //}
-  async function loadSalesChart() {
+async function loadSalesChart() {
   const canvas = $('salesChart');
   if (!canvas) return;
 
@@ -383,37 +280,7 @@ const Admin = (() => {
   }
 }
 
-  //async function loadTopProducts() {
-    const container = $('topProducts');
-    if (!container) return;
-
-    try {
-      // En producción, obtener del API de reportes
-      // Por ahora simular datos
-      const topProducts = [
-        { id: 'P001', name: 'Filtro de Aceite Premium', qty: 45, revenue: 22500 },
-        { id: 'P002', name: 'Pastillas de Freno Delanteras', qty: 32, revenue: 19200 },
-        { id: 'P003', name: 'Batería 12V 75Ah', qty: 28, revenue: 16800 },
-        { id: 'P004', name: 'Aceite Motor 5W-30', qty: 25, revenue: 12500 },
-        { id: 'P005', name: 'Bujías Iridium', qty: 20, revenue: 8000 }
-      ];
-
-      container.innerHTML = topProducts.map((p, idx) => `
-        <div class="top-product-item">
-          <div class="top-product-rank">${idx + 1}</div>
-          <div class="top-product-info">
-            <div class="top-product-name">${p.name}</div>
-            <div class="top-product-sales">${p.qty} unidades vendidas</div>
-          </div>
-          <div class="top-product-revenue">${fmt(p.revenue)}</div>
-        </div>
-      `).join('');
-
-    } catch (err) {
-      console.error('Error cargando top productos:', err);
-    }
- // }
-async function loadTopProducts() {
+ async function loadTopProducts() {
   const container = $('topProducts');
   if (!container) return;
 
@@ -458,6 +325,7 @@ async function loadTopProducts() {
     container.innerHTML = '<p style="text-align:center;color:#ef4444;padding:20px;">❌ Error al cargar productos</p>';
   }
 }
+
   async function loadRecentOrders() {
     const container = $('recentOrders');
     if (!container) return;
