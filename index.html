@@ -2,111 +2,151 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-   
- 
-  <title>KEEP IT GREAT AUTO PARTS - Tienda</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KEEP IT GREAT AUTO PARTS - Tienda de Repuestos</title>
+  <meta name="description" content="Repuestos y accesorios para tu vehículo. Calidad OEM y marcas premium con envío a todo el país.">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="layout">
+    <!-- HEADER MEJORADO -->
     <header class="header">
       <div class="brand">
-       <div class="logo-circle">
-         <img src="https://keep-it-great-autoparts-production.up.railway.app/img/logo22.jpeg" class="logo-img" alt="Logo">
-            </div>
+        <div class="logo-circle">
+          <img src="https://keep-it-great-autoparts-production.up.railway.app/img/logo22.jpeg" class="logo-img" alt="KEEP IT GREAT Logo">
+        </div>
         <div>
           <div class="brand-title">KEEP IT GREAT AUTO PARTS</div>
-          <div class="brand-title">the world of spare parts</div>
-          <div class="tagline">Piezas y accesorios para mantener tu Vehiculo impecable</div>
+          <div class="brand-subtitle">The World of Spare Parts</div>
+          <div class="tagline">Piezas y accesorios para mantener tu vehículo impecable</div>
         </div>
       </div>
-      <div style="text-align:right;font-size:11px;color:#9ca3af">
-        <div>Santo Domingo, RD</div>
-        <div>© <span id="year"></span> KEEP IT GREAT</div>
+      <div class="header-info">
+        <div class="location">📍 Santo Domingo, RD</div>
+        <div class="copyright">© <span id="year"></span> KEEP IT GREAT</div>
       </div>
     </header>
 
+    <!-- FILTROS CON ÍCONO DE BÚSQUEDA -->
     <section class="filters-card">
-      <div style="flex:1;min-width:180px">
-        <input id="q" style="width:100%" placeholder="Buscar por código, nombre, marca..." oninput="Shop.render()">
+      <div class="search-wrapper">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM18 18l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <input id="q" placeholder="Buscar por código, nombre, marca..." oninput="Shop.render()">
       </div>
-      <div class="chip">Filtrar precio</div>
+      <div class="chip">💰 Filtrar precio</div>
       <div>
-        <input id="minPrice" type="number" placeholder="Mín" style="width:80px">
+        <input id="minPrice" type="number" placeholder="Mín" class="price-input">
       </div>
       <div>
-        <input id="maxPrice" type="number" placeholder="Máx" style="width:80px">
+        <input id="maxPrice" type="number" placeholder="Máx" class="price-input">
       </div>
       <button class="btn" onclick="Shop.applyPrice()">Aplicar</button>
     </section>
 
+    <!-- CATEGORÍAS -->
     <div class="categories" id="cats"></div>
 
-    <div class="grid" id="products"></div>
+    <!-- GRID DE PRODUCTOS -->
+    <div class="grid" id="products">
+      <!-- Loading skeleton -->
+      <div class="skeleton-card">
+        <div class="skeleton-img"></div>
+        <div class="skeleton-body">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line short"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGINACIÓN -->
     <div id="pagination"></div>
   </div>
 
+  <!-- BOTÓN CARRITO FLOTANTE -->
   <div class="cart-fab" onclick="Shop.openCart()" id="cart">
-    <span style="font-size:13px">Carrito</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+    </svg>
     <span class="cart-count-pill" id="cart-count">0</span>
   </div>
 
+  <!-- BOTÓN VOLVER ARRIBA -->
+  <button class="back-to-top" id="backToTop" onclick="Shop.scrollToTop()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  </button>
+
+  <!-- CART DRAWER -->
   <div class="cart-backdrop" id="cart-backdrop" onclick="Shop.closeCart()"></div>
   <div class="cart-drawer" id="cart-drawer">
     <div class="cart-header">
       <div>
-        <strong>Tu carrito</strong>
-        <div class="muted" style="font-size:11px">Revisa y confirma tu pedido</div>
+        <strong>🛒 Tu carrito</strong>
+        <div class="muted">Revisa y confirma tu pedido</div>
       </div>
-      <button class="btn" onclick="Shop.closeCart()">Cerrar</button>
+      <button class="btn" onclick="Shop.closeCart()">✕</button>
     </div>
     <div class="cart-body" id="cart-items"></div>
     <div class="cart-footer">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div class="cart-total-row">
         <div class="muted">Total</div>
-        <div style="font-weight:800" id="cart-total">RD$ 0.00</div>
+        <div class="cart-total-price" id="cart-total">RD$ 0.00</div>
       </div>
-      <button class="btn btn-primary" style="width:100%" onclick="Shop.showCheckout()">Ir a pagar</button>
+      <button class="btn btn-primary btn-checkout" onclick="Shop.showCheckout()">
+        Ir a pagar
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
       <div id="checkout-form" style="margin-top:10px;display:none"></div>
     </div>
   </div>
 
-
-    
- 
-<footer class="footer">
-  <div class="cols container">
-      <div>
-        <div class="logo-circle">
-          <img src="https://keep-it-great-autoparts-production.up.railway.app/img/logo22.jpeg" class="logo-img" alt="Logo">
-              </div>
-          <div>
+  <!-- FOOTER MEJORADO -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-section">
+        <div class="footer-logo">
+          <div class="logo-circle">
+            <img src="https://keep-it-great-autoparts-production.up.railway.app/img/logo22.jpeg" class="logo-img" alt="Logo">
+          </div>
+          <div class="footer-brand">KEEP IT GREAT</div>
+        </div>
         <p>Repuestos y accesorios con envío a todo el país. Calidad OEM y marcas premium.</p>
       </div>
-      <div>
-        <h4>Contacto</h4>
-        <p>WhatsApp: <a href="https://wa.me/18096176188" target="_blank">+18096176188</a></p>
-        <p>Tel: <a href="tel:+18096176188">+18096176188</a></p>
+      
+      <div class="footer-section">
+        <h4>📞 Contacto</h4>
+        <p>WhatsApp: <a href="https://wa.me/18096176188" target="_blank">+1 809 617 6188</a></p>
+        <p>Tel: <a href="tel:+18096176188">+1 809 617 6188</a></p>
         <p>Email: <a href="mailto:ventas@keepitgreat.do">ventas@keepitgreat.do</a></p>
-        <p>Dirección: Av. Ejemplo #123, Santo Domingo</p>
+        <p>📍 Santo Domingo, República Dominicana</p>
       </div>
-      <div>
-        <h4>Empresa</h4>
-        <p><a href="#">Políticas de garantía</a></p>
-        <p><a href="#">Términos y condiciones</a></p>
-        <p><a href="#">Devoluciones</a></p>
+      
+      <div class="footer-section">
+        <h4>🏢 Empresa</h4>
+        <p><a href="#politicas">Políticas de garantía</a></p>
+        <p><a href="#terminos">Términos y condiciones</a></p>
+        <p><a href="#devoluciones">Devoluciones</a></p>
       </div>
-      <small>© <span id="year"></span> KEEP IT GREAT Auto Parts. Todos los derechos reservados.</small>
     </div>
- 
-      <div class="logo-gestor-container">
-      <img src="https://keep-it-great-autoparts-production.up.railway.app/img/RayGestor.png" class="logo-Gestor">
-      </div>
-      <div class="logo-gestor-container">
-      <img src="https://keep-it-great-autoparts-production.up.railway.app/img/MrGestor.jpeg" class="logo-Gestor">
-     </div>
 
-    
+    <div class="footer-partners">
+      <p class="partners-title">Desarrollado por:</p>
+      <div class="partners-logos">
+        <img src="https://keep-it-great-autoparts-production.up.railway.app/img/RayGestor.png" alt="Ray Gestor" class="partner-logo">
+        <img src="https://keep-it-great-autoparts-production.up.railway.app/img/MrGestor.jpeg" alt="Mr Gestor" class="partner-logo">
+        <img src="https://keep-it-great-autoparts-production.up.railway.app/img/logo22.jpeg" alt="logo-img" class="partner-logo">
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© <span id="year2"></span> KEEP IT GREAT Auto Parts. Todos los derechos reservados.</p>
+    </div>
   </footer>
 
   <script src="config.js"></script>
