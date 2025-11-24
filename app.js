@@ -1,6 +1,8 @@
 const Shop = (() => {
-  const API = window.KG_CONFIG.apiBase;
+  const API = window.KG_CONFIG?.apiBase || "http://localhost:61169";
   const WHATSAPP = window.KG_CONFIG?.whatsappNumber || "";
+  const ITEMS_PER_PAGE = 12; // Productos por página
+  
   const $ = id => document.getElementById(id);
   const fmt = n => 'RD$ ' + Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 });
 
@@ -8,58 +10,29 @@ const Shop = (() => {
     products: [],
     cart: JSON.parse(localStorage.getItem('kg_cart') || '[]'),
     categoryActive: 'all',
-    priceRange: { min: null, max: null }
+    priceRange: { min: null, max: null },
+    currentPage: 1  
   };
 
   // ================== CARGA INICIAL ==================
-async function load() {
-  try {
-    const r = await fetch(`${API}/api/products`);
-    if (!r.ok) {
-      console.error('Error cargando productos:', r.status, await r.text());
-      alert('No se pudo cargar la lista de productos.');
-      return;
+  async function load() {
+    try {
+      const r = await fetch(`${API}/api/products`);
+      if (!r.ok) {
+        console.error('Error cargando productos:', r.status, await r.text());
+        alert('No se pudo cargar la lista de productos.');
+        return;
+      }
+      state.products = await r.json();
+      buildCats();
+      render();
+      updateCartCount();
+      const y = $('year'); if (y) y.textContent = new Date().getFullYear();
+    } catch (err) {
+      console.error('Error de conexión al cargar productos:', err);
+      alert('No se pudo conectar con el servidor de productos.');
     }
-
-    state.products = await r.json();
-    buildCats();       // categorías
-    render();          // pinta productos
-    updateCartCount(); // carrito
-    const y = $('year'); 
-    if (y) y.textContent = new Date().getFullYear();
-  } catch (err) {
-    console.error('Error de conexión al cargar productos:', err);
-    alert('No se pudo conectar con el servidor de productos.');
   }
-}
-
-// ================== AUTO-REFRESH DE PRODUCTOS ==================
-async function refreshProductsIfChanged() {
-  try {
-    const r = await fetch(`${API}/api/products`);
-    if (!r.ok) return;
-
-    const newList = await r.json();
-
-    // Comparación sencilla (para tu catálogo está bien)
-    const changed = JSON.stringify(newList) !== JSON.stringify(state.products);
-    if (changed) {
-      console.log('Productos cambiaron, actualizando vista...');
-      state.products = newList;
-      buildCats();   // por si hay nuevas categorías o productos
-      render();      // vuelve a pintar la lista de productos
-    }
-  } catch (e) {
-    console.error('Error refrescando productos', e);
-  }
-}
-
-// refrescar cada 30 segundos (puedes bajar a 10–15 si quieres algo más “en vivo”)
-setInterval(refreshProductsIfChanged, 10000);
-
-
-// refrescar cada 30 segundos (ajusta a lo que quieras)
-setInterval(refreshProductsIfChanged, 30000);
 
   function buildCats() {
     const set = new Set(state.products.map(p => p.category).filter(Boolean));
@@ -70,12 +43,16 @@ setInterval(refreshProductsIfChanged, 30000);
       const div = document.createElement('div');
       div.className = 'category' + (state.categoryActive === c ? ' active' : '');
       div.textContent = c === 'all' ? 'Todos' : c;
-      div.onclick = () => { state.categoryActive = c; render(); };
+      div.onclick = () => { 
+        state.categoryActive = c;
+        state.currentPage = 1; // Reset a página 1 al cambiar categoría
+        render();
+      };
       box.appendChild(div);
     });
   }
 
-  // ================== LISTA DE PRODUCTOS ==================
+  // ================== LISTA DE PRODUCTOS CON PAGINACIÓN ==================
   function render() {
     const q = ($('q')?.value || '').toLowerCase();
     let list = state.products.filter(p =>
@@ -85,10 +62,17 @@ setInterval(refreshProductsIfChanged, 30000);
     if (state.priceRange.min != null) list = list.filter(p => (p.price || 0) >= state.priceRange.min);
     if (state.priceRange.max != null) list = list.filter(p => (p.price || 0) <= state.priceRange.max);
 
+    // Calcular paginación
+    const totalPages = Math.ceil(list.length / ITEMS_PER_PAGE);
+    const startIndex = (state.currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedList = list.slice(startIndex, endIndex);
+
     const box = $('products'); if (!box) return;
     box.innerHTML = '';
 
-    list.forEach(p => {
+    // Mostrar productos de la página actual
+    paginatedList.forEach(p => {
       const oos = (p.stock || 0) <= 0;
 
       // Resolver URL de imagen
@@ -120,6 +104,94 @@ setInterval(refreshProductsIfChanged, 30000);
         </div>`;
       box.appendChild(card);
     });
+
+    // Renderizar paginación
+    renderPagination(totalPages, list.length);
+  }
+
+  function renderPagination(totalPages, totalItems) {
+    const paginationBox = $('pagination');
+    if (!paginationBox) return;
+
+    if (totalPages <= 1) {
+      paginationBox.innerHTML = '';
+      return;
+    }
+
+    paginationBox.innerHTML = `
+      <div class="pagination-info">
+        Mostrando ${((state.currentPage - 1) * ITEMS_PER_PAGE) + 1}-${Math.min(state.currentPage * ITEMS_PER_PAGE, totalItems)} de ${totalItems} productos
+      </div>
+      <div class="pagination-controls">
+        ${renderPaginationButtons(totalPages)}
+      </div>
+    `;
+  }
+
+  function renderPaginationButtons(totalPages) {
+    let buttons = '';
+    
+    // Botón anterior
+    buttons += `
+      <button class="btn-page ${state.currentPage === 1 ? 'disabled' : ''}" 
+              onclick="Shop.goToPage(${state.currentPage - 1})" 
+              ${state.currentPage === 1 ? 'disabled' : ''}>
+        ‹ Anterior
+      </button>
+    `;
+
+    // Lógica para mostrar números de página
+    const maxButtons = 7;
+    let startPage = Math.max(1, state.currentPage - Math.floor(maxButtons / 2));
+    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    
+    if (endPage - startPage < maxButtons - 1) {
+      startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+
+    // Primera página
+    if (startPage > 1) {
+      buttons += `<button class="btn-page" onclick="Shop.goToPage(1)">1</button>`;
+      if (startPage > 2) {
+        buttons += `<span class="pagination-dots">...</span>`;
+      }
+    }
+
+    // Páginas numeradas
+    for (let i = startPage; i <= endPage; i++) {
+      buttons += `
+        <button class="btn-page ${i === state.currentPage ? 'active' : ''}" 
+                onclick="Shop.goToPage(${i})">
+          ${i}
+        </button>
+      `;
+    }
+
+    // Última página
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        buttons += `<span class="pagination-dots">...</span>`;
+      }
+      buttons += `<button class="btn-page" onclick="Shop.goToPage(${totalPages})">${totalPages}</button>`;
+    }
+
+    // Botón siguiente
+    buttons += `
+      <button class="btn-page ${state.currentPage === totalPages ? 'disabled' : ''}" 
+              onclick="Shop.goToPage(${state.currentPage + 1})" 
+              ${state.currentPage === totalPages ? 'disabled' : ''}>
+        Siguiente ›
+      </button>
+    `;
+
+    return buttons;
+  }
+
+  function goToPage(page) {
+    state.currentPage = page;
+    render();
+    // Scroll suave hacia arriba
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function applyPrice() {
@@ -127,6 +199,7 @@ setInterval(refreshProductsIfChanged, 30000);
     const max = parseFloat($('maxPrice').value || '');
     state.priceRange.min = isNaN(min) ? null : min;
     state.priceRange.max = isNaN(max) ? null : max;
+    state.currentPage = 1; // Reset a página 1 al filtrar
     render();
   }
 
@@ -261,72 +334,70 @@ setInterval(refreshProductsIfChanged, 30000);
     `;
   }
 
- async function confirmCheckout() {
-  const name = ($('c_name')?.value || '').trim();
-  const phone = ($('c_phone')?.value || '').trim();
-  const address = $('c_address')?.value || '';
-  const method = $('c_method')?.value || 'contraentrega';
+  async function confirmCheckout() {
+    const name = ($('c_name')?.value || '').trim();
+    const phone = ($('c_phone')?.value || '').trim();
+    const address = $('c_address')?.value || '';
+    const method = $('c_method')?.value || 'contraentrega';
 
-  if (!name || !phone) {
-    alert('Completa nombre y teléfono');
-    return;
-  }
-
-  const subtotal = state.cart.reduce((s, x) => s + x.price * x.qty, 0);
-  const itbis = subtotal * 0.18;
-  const envio = subtotal >= 5000 ? 0 : 250;
-  const total = subtotal + itbis + envio;
-
-  const body = {
-    customer_Name: name,
-    phone,
-    address,
-    method,
-    subtotal,
-    itbis,
-    envio,
-    total,
-    items: state.cart.map(x => ({
-      productId: x.id,  
-      name: x.name,
-      price: x.price,
-      qty: x.qty
-    }))
-  };
-
-  // 1) Registrar en API
-  let orderNumber = '';
-  let orderId = '';
-  try {
-    const r = await fetch(`${API}/api/checkout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (r.ok) {
-      const data = await r.json().catch(() => null);
-      
-     orderId = data?.number || '';
-    } else {
-      console.error('Error /api/checkout:', r.status, await r.text());
+    if (!name || !phone) {
+      alert('Completa nombre y teléfono');
+      return;
     }
-  } catch (err) {
-    console.error('Error llamando /api/checkout', err);
-  }
 
-  // 2) Mensaje de WhatsApp
-  const itemsLines = state.cart.map((x, i) => {
-    const line = x.price * x.qty;
-    return `${i + 1}. ${x.name} (ID: ${x.id}) x${x.qty} @ ${fmt(x.price)} = ${fmt(line)}`;
-  }).join('\n');
+    const subtotal = state.cart.reduce((s, x) => s + x.price * x.qty, 0);
+    const itbis = subtotal * 0.18;
+    const envio = subtotal >= 5000 ? 0 : 250;
+    const total = subtotal + itbis + envio;
 
-  const msg =
+    const body = {
+      customer_Name: name,
+      phone,
+      address,
+      method,
+      subtotal,
+      itbis,
+      envio,
+      total,
+      items: state.cart.map(x => ({
+        productId: x.id,  
+        name: x.name,
+        price: x.price,
+        qty: x.qty
+      }))
+    };
+
+    // 1) Registrar en API
+    let orderId = '';
+    try {
+      const r = await fetch(`${API}/api/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (r.ok) {
+        const data = await r.json().catch(() => null);
+        orderId = data?.number || '';
+      } else {
+        console.error('Error /api/checkout:', r.status, await r.text());
+      }
+    } catch (err) {
+      console.error('Error llamando /api/checkout', err);
+    }
+
+    // 2) Mensaje de WhatsApp
+    const itemsLines = state.cart.map((x, i) => {
+      const line = x.price * x.qty;
+      return `${i + 1}. ${x.name} (ID: ${x.id}) x${x.qty} @ ${fmt(x.price)} = ${fmt(line)}`;
+    }).join('\n');
+
+    const msg =
 `Nuevo pedido KEEP IT GREAT AUTO PARTS
- Nemero Pedido: ${orderId}
- Cliente: ${name}
- Teléfono: ${phone}
- Dirección: ${address || 'N/D'}
- Método de pago: ${method}
+Número Pedido: ${orderId}
+Cliente: ${name}
+Teléfono: ${phone}
+Dirección: ${address || 'N/D'}
+Método de pago: ${method}
 
 Artículos:
 ${itemsLines}
@@ -336,34 +407,30 @@ ITBIS (18%): ${fmt(itbis)}
 Envío: ${fmt(envio)}
 TOTAL: ${fmt(total)}`;
 
- if (WHATSAPP) {
-  const waPhone = WHATSAPP.replace(/\D/g, ''); // quita +, espacios, etc.
-
-  const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`;
-  console.log('WA URL:', waUrl);
-
-  // En lugar de window.open
-  window.location.href = waUrl;
-} else {
-  alert('No se ha configurado el número de WhatsApp.');
-}
-
-  // 3) Limpiar carrito y refrescar stock
-  state.cart = [];
-  localStorage.setItem('kg_cart', '[]');
-  updateCartCount();
-  closeCart();
-
-  try {
-    const rr = await fetch(`${API}/api/products`);
-    if (rr.ok) {
-      state.products = await rr.json();
-      render();
+    if (WHATSAPP) {
+      const waPhone = WHATSAPP.replace(/\D/g, '');
+      const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`;
+      window.location.href = waUrl;
+    } else {
+      alert('No se ha configurado el número de WhatsApp.');
     }
-  } catch (e) {
-    console.error('Error recargando productos:', e);
+
+    // 3) Limpiar carrito y refrescar stock
+    state.cart = [];
+    localStorage.setItem('kg_cart', '[]');
+    updateCartCount();
+    closeCart();
+
+    try {
+      const rr = await fetch(`${API}/api/products`);
+      if (rr.ok) {
+        state.products = await rr.json();
+        render();
+      }
+    } catch (e) {
+      console.error('Error recargando productos:', e);
+    }
   }
-}
 
   // Exponer funciones públicas
   return {
@@ -377,7 +444,8 @@ TOTAL: ${fmt(total)}`;
     openCart,
     closeCart,
     showCheckout,
-    confirmCheckout
+    confirmCheckout,
+    goToPage
   };
 })();
 

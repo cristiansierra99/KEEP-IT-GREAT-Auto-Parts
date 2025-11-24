@@ -416,7 +416,7 @@ async function loadOrders() {
     showOrderDetail,
     confirmOrder,
     cancelOrder,
-    showReports,
+    showReports,  
     initBulkUpload
   };
 })();
