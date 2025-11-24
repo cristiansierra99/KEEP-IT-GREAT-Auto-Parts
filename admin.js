@@ -24,13 +24,15 @@ const Admin = (() => {
 
   // =============== TABS ===============
   function showTab(tab) {
-    const tabs = ['products', 'orders', 'reports'];
+    const tabs = ['dashboard', 'products', 'orders', 'reports'];
     const titles = {
+      dashboard: '📊 Dashboard',
       products: '📦 Productos',
       orders: '🛒 Órdenes',
-      reports: '📊 Reportes'
+      reports: '📈 Reportes'
     };
     const subtitles = {
+      dashboard: 'Resumen y estadísticas',
       products: 'Gestiona tu inventario',
       orders: 'Revisa y confirma pedidos',
       reports: 'Análisis de ventas'
@@ -54,9 +56,501 @@ const Admin = (() => {
     if (pageTitle) pageTitle.textContent = titles[tab] || '';
     if (pageSubtitle) pageSubtitle.textContent = subtitles[tab] || '';
 
-    if (tab === 'orders') {
+    if (tab === 'dashboard') {
+      loadDashboard();
+    } else if (tab === 'orders') {
       loadOrders();
     }
+  }
+
+  // =============== DASHBOARD ===============
+  async function loadDashboard() {
+    try {
+      await Promise.all([
+        loadDashboardStats(),
+        loadSalesChart(),
+        loadTopProducts(),
+        loadRecentOrders(),
+        loadStockAlerts()
+      ]);
+    } catch (err) {
+      console.error('Error cargando dashboard:', err);
+    }
+  }
+
+  async function loadDashboardStats() {
+    try {
+      // Obtener estadísticas del mes actual
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const statsUrl = `${API}/api/reports/sales?from=${firstDay.toISOString()}&to=${lastDay.toISOString()}`;
+      const ordersUrl = `${API}/api/orders`;
+      const productsUrl = `${API}/api/products/all`;
+
+      const [statsRes, ordersRes, productsRes] = await Promise.all([
+        fetch(statsUrl).catch(() => null),
+        fetch(ordersUrl).catch(() => null),
+        fetch(productsUrl).catch(() => null)
+      ]);
+
+      let totalSales = 0;
+      if (statsRes && statsRes.ok) {
+        const stats = await statsRes.json();
+        totalSales = stats.ingresos || 0;
+      }
+
+      let ordersData = [];
+      let pendingOrders = 0;
+      let uniqueCustomers = new Set();
+      if (ordersRes && ordersRes.ok) {
+        ordersData = await ordersRes.json();
+        pendingOrders = ordersData.filter(o => (o.status || o.Status) === 'PENDIENTE').length;
+        ordersData.forEach(o => {
+          const phone = o.phone || o.Phone;
+          if (phone) uniqueCustomers.add(phone);
+        });
+      }
+
+      let productsData = [];
+      let lowStock = 0;
+      if (productsRes && productsRes.ok) {
+        productsData = await productsRes.json();
+        lowStock = productsData.filter(p => (p.stock || 0) < 5 && (p.stock || 0) > 0).length;
+      }
+
+      // Actualizar UI
+      const statSales = $('stat-sales');
+      if (statSales) statSales.textContent = fmt(totalSales);
+
+      const statOrders = $('stat-orders');
+      if (statOrders) statOrders.textContent = ordersData.length;
+
+      const statOrdersStatus = $('stat-orders-status');
+      if (statOrdersStatus) statOrdersStatus.textContent = `${pendingOrders} pendientes`;
+
+      const statProducts = $('stat-products');
+      if (statProducts) statProducts.textContent = productsData.filter(p => p.active).length;
+
+      const statStockAlert = $('stat-stock-alert');
+      if (statStockAlert) {
+        statStockAlert.textContent = `${lowStock} con stock bajo`;
+        statStockAlert.className = lowStock > 0 ? 'stat-change warning' : 'stat-change';
+      }
+
+      const statCustomers = $('stat-customers');
+      if (statCustomers) statCustomers.textContent = uniqueCustomers.size;
+
+    } catch (err) {
+      console.error('Error cargando stats:', err);
+    }
+  }
+
+ // async function loadSalesChart() {
+    const canvas = $('salesChart');
+    if (!canvas) return;
+
+    try {
+      const now = new Date();
+      const days = 7;
+      const labels = [];
+      const data = [];
+
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric' }));
+        
+        // Simular datos (en producción obtener del API)
+        data.push(Math.floor(Math.random() * 50000) + 10000);
+      }
+
+      const ctx = canvas.getContext('2d');
+      
+      // Limpiar canvas anterior
+      if (window.salesChartInstance) {
+        window.salesChartInstance.destroy();
+      }
+
+      // Crear gradiente
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, 'rgba(255, 186, 8, 0.4)');
+      gradient.addColorStop(1, 'rgba(255, 186, 8, 0.05)');
+
+      window.salesChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Ventas (RD$)',
+            data: data,
+            borderColor: '#ffba08',
+            backgroundColor: gradient,
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#ffba08',
+            pointBorderColor: '#111',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              titleColor: '#ffba08',
+              bodyColor: '#e5e7eb',
+              borderColor: '#ffba08',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: false,
+              callbacks: {
+                label: function(context) {
+                  return 'Ventas: ' + fmt(context.parsed.y);
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(255, 186, 8, 0.1)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#9ca3af',
+                callback: function(value) {
+                  return 'RD$ ' + (value / 1000).toFixed(0) + 'K';
+                }
+              }
+            },
+            x: {
+              grid: {
+                display: false,
+                drawBorder: false
+              },
+              ticks: {
+                color: '#9ca3af'
+              }
+            }
+          }
+        }
+      });
+
+    } catch (err) {
+      console.error('Error cargando gráfico:', err);
+    }
+  //}
+  async function loadSalesChart() {
+  const canvas = $('salesChart');
+  if (!canvas) return;
+
+  try {
+    const now = new Date();
+    const days = parseInt($('sales-period')?.value || '7');
+    const labels = [];
+    const salesData = [];
+
+    // Obtener ventas de los últimos N días
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      
+      const dayStart = new Date(date);
+      dayStart.setHours(0, 0, 0, 0);
+      
+      const dayEnd = new Date(date);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      // Label para el gráfico
+      if (days === 7) {
+        labels.push(date.toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric' }));
+      } else if (days === 30) {
+        labels.push(date.toLocaleDateString('es-DO', { day: 'numeric', month: 'short' }));
+      } else {
+        labels.push(date.toLocaleDateString('es-DO', { day: 'numeric', month: 'short' }));
+      }
+
+      // Obtener ventas del día desde el API
+      try {
+        const url = `${API}/api/reports/sales?from=${dayStart.toISOString()}&to=${dayEnd.toISOString()}`;
+        const r = await fetch(url);
+        if (r.ok) {
+          const dayData = await r.json();
+          salesData.push(dayData.ingresos || 0);
+        } else {
+          salesData.push(0);
+        }
+      } catch {
+        salesData.push(0);
+      }
+    }
+
+    const ctx = canvas.getContext('2d');
+    
+    // Limpiar canvas anterior
+    if (window.salesChartInstance) {
+      window.salesChartInstance.destroy();
+    }
+
+    // Crear gradiente
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(255, 186, 8, 0.4)');
+    gradient.addColorStop(1, 'rgba(255, 186, 8, 0.05)');
+
+    window.salesChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Ventas (RD$)',
+          data: salesData,
+          borderColor: '#ffba08',
+          backgroundColor: gradient,
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#ffba08',
+          pointBorderColor: '#111',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleColor: '#ffba08',
+            bodyColor: '#e5e7eb',
+            borderColor: '#ffba08',
+            borderWidth: 1,
+            padding: 12,
+            displayColors: false,
+            callbacks: {
+              label: function(context) {
+                return 'Ventas: ' + fmt(context.parsed.y);
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(255, 186, 8, 0.1)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#9ca3af',
+              callback: function(value) {
+                if (value >= 1000) {
+                  return 'RD$ ' + (value / 1000).toFixed(0) + 'K';
+                }
+                return 'RD$ ' + value;
+              }
+            }
+          },
+          x: {
+            grid: {
+              display: false,
+              drawBorder: false
+            },
+            ticks: {
+              color: '#9ca3af'
+            }
+          }
+        }
+      }
+    });
+
+  } catch (err) {
+    console.error('Error cargando gráfico:', err);
+  }
+}
+
+  //async function loadTopProducts() {
+    const container = $('topProducts');
+    if (!container) return;
+
+    try {
+      // En producción, obtener del API de reportes
+      // Por ahora simular datos
+      const topProducts = [
+        { id: 'P001', name: 'Filtro de Aceite Premium', qty: 45, revenue: 22500 },
+        { id: 'P002', name: 'Pastillas de Freno Delanteras', qty: 32, revenue: 19200 },
+        { id: 'P003', name: 'Batería 12V 75Ah', qty: 28, revenue: 16800 },
+        { id: 'P004', name: 'Aceite Motor 5W-30', qty: 25, revenue: 12500 },
+        { id: 'P005', name: 'Bujías Iridium', qty: 20, revenue: 8000 }
+      ];
+
+      container.innerHTML = topProducts.map((p, idx) => `
+        <div class="top-product-item">
+          <div class="top-product-rank">${idx + 1}</div>
+          <div class="top-product-info">
+            <div class="top-product-name">${p.name}</div>
+            <div class="top-product-sales">${p.qty} unidades vendidas</div>
+          </div>
+          <div class="top-product-revenue">${fmt(p.revenue)}</div>
+        </div>
+      `).join('');
+
+    } catch (err) {
+      console.error('Error cargando top productos:', err);
+    }
+ // }
+async function loadTopProducts() {
+  const container = $('topProducts');
+  if (!container) return;
+
+  try {
+    // Obtener datos reales del mes actual
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const url = `${API}/api/reports/sales?from=${firstDay.toISOString()}&to=${lastDay.toISOString()}`;
+    const r = await fetch(url);
+    
+    if (!r.ok) {
+      container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:20px;">No hay datos disponibles</p>';
+      return;
+    }
+
+    const data = await r.json();
+    const topProducts = data.top || [];
+
+    if (topProducts.length === 0) {
+      container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:20px;">📦 No hay ventas este mes</p>';
+      return;
+    }
+
+    // Tomar solo los top 5
+    const top5 = topProducts.slice(0, 5);
+
+    container.innerHTML = top5.map((p, idx) => `
+      <div class="top-product-item">
+        <div class="top-product-rank">${idx + 1}</div>
+        <div class="top-product-info">
+          <div class="top-product-name">${p.name}</div>
+          <div class="top-product-sales">${p.qty || 0} unidades vendidas</div>
+        </div>
+        <div class="top-product-revenue">${fmt(p.venta || 0)}</div>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    console.error('Error cargando top productos:', err);
+    container.innerHTML = '<p style="text-align:center;color:#ef4444;padding:20px;">❌ Error al cargar productos</p>';
+  }
+}
+  async function loadRecentOrders() {
+    const container = $('recentOrders');
+    if (!container) return;
+
+    try {
+      const r = await fetch(`${API}/api/orders`);
+      if (!r.ok) return;
+
+      const allOrders = await r.json();
+      const recentOrders = allOrders
+        .map(o => ({
+          id: o.id || o.Id,
+          orderNumber: o.orderNumber || o.OrderNumber || '',
+          customer_Name: o.customer_Name || o.Customer_Name || 'Cliente',
+          total: o.total ?? o.Total ?? 0,
+          status: o.status || o.Status || 'PENDIENTE',
+          created_At: o.created_At || o.Created_At
+        }))
+        .sort((a, b) => new Date(b.created_At) - new Date(a.created_At))
+        .slice(0, 5);
+
+      if (recentOrders.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:20px;">No hay órdenes recientes</p>';
+        return;
+      }
+
+      container.innerHTML = recentOrders.map(o => {
+        const date = o.created_At ? new Date(o.created_At) : null;
+        const timeAgo = date ? getTimeAgo(date) : '';
+        const badgeClass = o.status === 'CONFIRMADA' ? 'badge-success' : 
+                          o.status === 'CANCELADA' ? 'badge-danger' : 'badge-warning';
+
+        return `
+          <div class="recent-order-item" onclick="Admin.showOrderDetail('${o.id}')">
+            <div class="order-info">
+              <h4>#${o.orderNumber || o.id} - ${o.customer_Name}</h4>
+              <p><span class="badge ${badgeClass}">${o.status}</span></p>
+            </div>
+            <div class="order-amount">
+              <div class="order-total">${fmt(o.total)}</div>
+              <div class="order-time">${timeAgo}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+    } catch (err) {
+      console.error('Error cargando órdenes recientes:', err);
+    }
+  }
+
+  async function loadStockAlerts() {
+    const container = $('stockAlerts');
+    if (!container) return;
+
+    try {
+      const lowStockProducts = products.filter(p => {
+        const stock = p.stock || 0;
+        return stock > 0 && stock < 5;
+      }).slice(0, 8);
+
+      if (lowStockProducts.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:20px;">✅ Todo el stock está bien</p>';
+        return;
+      }
+
+      container.innerHTML = lowStockProducts.map(p => `
+        <div class="alert-item">
+          <div class="alert-icon">⚠️</div>
+          <div class="alert-content">
+            <div class="alert-title">${p.name}</div>
+            <div class="alert-desc">Stock actual: ${p.stock} unidades - ID: ${p.id}</div>
+          </div>
+        </div>
+      `).join('');
+
+    } catch (err) {
+      console.error('Error cargando alertas:', err);
+    }
+  }
+
+  function getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    
+    if (seconds < 60) return 'Hace un momento';
+    if (seconds < 3600) return `Hace ${Math.floor(seconds / 60)} min`;
+    if (seconds < 86400) return `Hace ${Math.floor(seconds / 3600)}h`;
+    if (seconds < 604800) return `Hace ${Math.floor(seconds / 86400)} días`;
+    return date.toLocaleDateString('es-DO');
+  }
+
+  function updateSalesChart() {
+    loadSalesChart();
   }
 
   // =============== PRODUCTOS ===============

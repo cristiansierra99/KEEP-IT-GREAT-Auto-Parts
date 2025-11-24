@@ -5,6 +5,8 @@
   <title>KEEP IT GREAT - Panel Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="admin-styles.css">
+  <!-- Chart.js para gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <div class="admin-wrapper">
@@ -47,12 +49,24 @@
         </div>
 
         <nav class="sidebar-nav">
-          <button id="tab-products" class="nav-item active" onclick="Admin.showTab('products')">
+          <!-- DASHBOARD -->
+          <button id="tab-dashboard" class="nav-item active" onclick="Admin.showTab('dashboard')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            Dashboard
+          </button>
+
+          <!-- PRODUCTOS -->
+          <button id="tab-products" class="nav-item" onclick="Admin.showTab('products')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             </svg>
             Productos
           </button>
+
+          <!-- ÓRDENES -->
           <button id="tab-orders" class="nav-item" onclick="Admin.showTab('orders')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
@@ -60,6 +74,8 @@
             </svg>
             Órdenes
           </button>
+
+          <!-- REPORTES -->
           <button id="tab-reports" class="nav-item" onclick="Admin.showTab('reports')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 3v18h18"/><path d="M18 17V9m-5 8V5m-5 12v-7"/>
@@ -84,13 +100,123 @@
         <!-- HEADER -->
         <header class="content-header">
           <div>
-            <h1 id="page-title">📦 Productos</h1>
-            <p class="page-subtitle">Gestiona tu inventario</p>
+            <h1 id="page-title">📊 Dashboard</h1>
+            <p class="page-subtitle">Resumen y estadísticas</p>
           </div>
         </header>
 
+        <!-- SECCIÓN DASHBOARD -->
+        <section id="section-dashboard" class="section">
+          
+          <!-- STATS CARDS -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Ventas del Mes</p>
+                <h3 class="stat-value" id="stat-sales">RD$ 0.00</h3>
+                <p class="stat-change positive" id="stat-sales-change">+0% vs mes anterior</p>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Órdenes Totales</p>
+                <h3 class="stat-value" id="stat-orders">0</h3>
+                <p class="stat-change" id="stat-orders-status">0 pendientes</p>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon" style="background: rgba(255, 186, 8, 0.1);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffba08" stroke-width="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                </svg>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Productos Activos</p>
+                <h3 class="stat-value" id="stat-products">0</h3>
+                <p class="stat-change warning" id="stat-stock-alert">0 con stock bajo</p>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon" style="background: rgba(168, 85, 247, 0.1);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>
+                  <polyline points="17 11 19 13 23 9"/>
+                </svg>
+              </div>
+              <div class="stat-content">
+                <p class="stat-label">Clientes</p>
+                <h3 class="stat-value" id="stat-customers">0</h3>
+                <p class="stat-change" id="stat-customers-new">0 nuevos este mes</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHARTS ROW -->
+          <div class="charts-row">
+            
+            <!-- VENTAS POR DÍA -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3>📊 Ventas Últimos 7 Días</h3>
+                <select id="sales-period" onchange="Admin.updateSalesChart()">
+                  <option value="7">Última semana</option>
+                  <option value="30">Último mes</option>
+                  <option value="90">Últimos 3 meses</option>
+                </select>
+              </div>
+              <canvas id="salesChart"></canvas>
+            </div>
+
+            <!-- TOP PRODUCTOS -->
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3>🏆 Productos Más Vendidos</h3>
+              </div>
+              <div id="topProducts" class="top-products-list"></div>
+            </div>
+
+          </div>
+
+          <!-- RECENT ORDERS + ALERTS -->
+          <div class="dashboard-bottom">
+            
+            <!-- ÓRDENES RECIENTES -->
+            <div class="recent-orders-card">
+              <div class="chart-header">
+                <h3>🕒 Órdenes Recientes</h3>
+                <button class="btn btn-small" onclick="Admin.showTab('orders')">Ver todas</button>
+              </div>
+              <div id="recentOrders" class="recent-orders-list"></div>
+            </div>
+
+            <!-- ALERTAS DE STOCK -->
+            <div class="alerts-card">
+              <div class="chart-header">
+                <h3>⚠️ Alertas de Stock Bajo</h3>
+              </div>
+              <div id="stockAlerts" class="alerts-list"></div>
+            </div>
+
+          </div>
+
+        </section>
+
         <!-- SECCIÓN PRODUCTOS -->
-        <section id="section-products" class="section">
+        <section id="section-products" class="section" style="display:none">
           <div class="section-toolbar">
             <div class="toolbar-left">
               <button class="btn btn-primary" onclick="Admin.openForm()">
