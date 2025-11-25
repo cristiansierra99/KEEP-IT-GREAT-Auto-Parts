@@ -78,75 +78,82 @@ const Admin = (() => {
     }
   }
 
-  async function loadDashboardStats() {
-    try {
-      // Obtener estadísticas del mes actual
-      const now = new Date();
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+async function loadDashboardStats() {
+  try {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-      const statsUrl = `${API}/api/reports/sales?from=${firstDay.toISOString()}&to=${lastDay.toISOString()}`;
-      const ordersUrl = `${API}/api/orders`;
-      const productsUrl = `${API}/api/products/all`;
+    const ordersUrl = `${API}/api/orders`;
+    const productsUrl = `${API}/api/products/all`;
 
-      const [statsRes, ordersRes, productsRes] = await Promise.all([
-        fetch(statsUrl).catch(() => null),
-        fetch(ordersUrl).catch(() => null),
-        fetch(productsUrl).catch(() => null)
-      ]);
+    const [ordersRes, productsRes] = await Promise.all([
+      fetch(ordersUrl).catch(() => null),
+      fetch(productsUrl).catch(() => null)
+    ]);
 
-      let totalSales = 0;
-      if (statsRes && statsRes.ok) {
-        const stats = await statsRes.json();
-        totalSales = stats.ingresos || 0;
-      }
+    let ordersData = [];
+    let totalSales = 0;
+    let pendingOrders = 0;
+    let uniqueCustomers = new Set();
 
-      let ordersData = [];
-      let pendingOrders = 0;
-      let uniqueCustomers = new Set();
-      if (ordersRes && ordersRes.ok) {
-        ordersData = await ordersRes.json();
-        pendingOrders = ordersData.filter(o => (o.status || o.Status) === 'PENDIENTE').length;
-        ordersData.forEach(o => {
-          const phone = o.phone || o.Phone;
-          if (phone) uniqueCustomers.add(phone);
-        });
-      }
+    if (ordersRes && ordersRes.ok) {
+      ordersData = await ordersRes.json();
+      
+      // Filtrar órdenes del mes actual
+      const thisMonthOrders = ordersData.filter(o => {
+        const orderDate = new Date(o.created_At || o.Created_At);
+        return orderDate >= firstDay && orderDate <= lastDay;
+      });
 
-      let productsData = [];
-      let lowStock = 0;
-      if (productsRes && productsRes.ok) {
-        productsData = await productsRes.json();
-        lowStock = productsData.filter(p => (p.stock || 0) < 5 && (p.stock || 0) > 0).length;
-      }
+      // Contar pendientes (todas las pendientes, no solo del mes)
+      pendingOrders = ordersData.filter(o => (o.status || o.Status) === 'PENDIENTE').length;
 
-      // Actualizar UI
-      const statSales = $('stat-sales');
-      if (statSales) statSales.textContent = fmt(totalSales);
+      // Calcular ventas SOLO de órdenes CONFIRMADAS del mes actual
+      totalSales = thisMonthOrders
+        .filter(o => (o.status || o.Status) === 'CONFIRMADA')
+        .reduce((sum, o) => sum + (o.total ?? o.Total ?? 0), 0);
 
-      const statOrders = $('stat-orders');
-      if (statOrders) statOrders.textContent = ordersData.length;
-
-      const statOrdersStatus = $('stat-orders-status');
-      if (statOrdersStatus) statOrdersStatus.textContent = `${pendingOrders} pendientes`;
-
-      const statProducts = $('stat-products');
-      if (statProducts) statProducts.textContent = productsData.filter(p => p.active).length;
-
-      const statStockAlert = $('stat-stock-alert');
-      if (statStockAlert) {
-        statStockAlert.textContent = `${lowStock} con stock bajo`;
-        statStockAlert.className = lowStock > 0 ? 'stat-change warning' : 'stat-change';
-      }
-
-      const statCustomers = $('stat-customers');
-      if (statCustomers) statCustomers.textContent = uniqueCustomers.size;
-
-    } catch (err) {
-      console.error('Error cargando stats:', err);
+      // Contar clientes únicos del mes
+      thisMonthOrders.forEach(o => {
+        const phone = o.phone || o.Phone;
+        if (phone) uniqueCustomers.add(phone);
+      });
     }
-  }
 
+    let productsData = [];
+    let lowStock = 0;
+    if (productsRes && productsRes.ok) {
+      productsData = await productsRes.json();
+      lowStock = productsData.filter(p => (p.stock || 0) < 5 && (p.stock || 0) > 0).length;
+    }
+
+    // Actualizar UI
+    const statSales = document.getElementById('stat-sales');
+    if (statSales) statSales.textContent = fmt(totalSales);
+
+    const statOrders = document.getElementById('stat-orders');
+    if (statOrders) statOrders.textContent = ordersData.length;
+
+    const statOrdersStatus = document.getElementById('stat-orders-status');
+    if (statOrdersStatus) statOrdersStatus.textContent = `${pendingOrders} pendientes`;
+
+    const statProducts = document.getElementById('stat-products');
+    if (statProducts) statProducts.textContent = productsData.filter(p => p.active).length;
+
+    const statStockAlert = document.getElementById('stat-stock-alert');
+    if (statStockAlert) {
+      statStockAlert.textContent = `${lowStock} con stock bajo`;
+      statStockAlert.className = lowStock > 0 ? 'stat-change warning' : 'stat-change';
+    }
+
+    const statCustomers = document.getElementById('stat-customers');
+    if (statCustomers) statCustomers.textContent = uniqueCustomers.size;
+
+  } catch (err) {
+    console.error('Error cargando stats:', err);
+  }
+}
 async function loadSalesChart() {
   const canvas = $('salesChart');
   if (!canvas) return;
@@ -157,7 +164,21 @@ async function loadSalesChart() {
     const labels = [];
     const salesData = [];
 
-    // Obtener ventas de los últimos N días
+    // Obtener TODAS las órdenes confirmadas
+    const ordersRes = await fetch(`${API}/api/orders`);
+    if (!ordersRes.ok) {
+      console.error('No se pudieron cargar las órdenes');
+      return;
+    }
+    
+    const allOrders = await ordersRes.json();
+    
+    // Filtrar solo CONFIRMADAS
+    const confirmedOrders = allOrders.filter(o => 
+      (o.status || o.Status) === 'CONFIRMADA'
+    );
+
+    // Calcular ventas por día
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
@@ -177,19 +198,15 @@ async function loadSalesChart() {
         labels.push(date.toLocaleDateString('es-DO', { day: 'numeric', month: 'short' }));
       }
 
-      // Obtener ventas del día desde el API
-      try {
-        const url = `${API}/api/reports/sales?from=${dayStart.toISOString()}&to=${dayEnd.toISOString()}`;
-        const r = await fetch(url);
-        if (r.ok) {
-          const dayData = await r.json();
-          salesData.push(dayData.ingresos || 0);
-        } else {
-          salesData.push(0);
-        }
-      } catch {
-        salesData.push(0);
-      }
+      // Sumar ventas del día solo de órdenes CONFIRMADAS
+      const daySales = confirmedOrders
+        .filter(o => {
+          const orderDate = new Date(o.created_At || o.Created_At);
+          return orderDate >= dayStart && orderDate <= dayEnd;
+        })
+        .reduce((sum, o) => sum + (o.total ?? o.Total ?? 0), 0);
+
+      salesData.push(daySales);
     }
 
     const ctx = canvas.getContext('2d');
@@ -209,7 +226,7 @@ async function loadSalesChart() {
       data: {
         labels: labels,
         datasets: [{
-          label: 'Ventas (RD$)',
+          label: 'Ventas Confirmadas (RD$)',
           data: salesData,
           borderColor: '#ffba08',
           backgroundColor: gradient,
@@ -841,52 +858,70 @@ async function loadSalesChart() {
     box.style.display = 'flex';
   }
 
-  async function confirmOrder(id, orderNumber) {
-    if (!confirm(`¿Confirmar la orden #${orderNumber || id}? Esto rebajará el inventario.`)) return;
+ async function confirmOrder(id, orderNumber) {
+  if (!confirm(`¿Confirmar la orden #${orderNumber || id}? Esto rebajará el inventario.`)) return;
 
-    try {
-      const r = await fetch(`${API}/api/orders/${encodeURIComponent(id)}/confirm`, {
-        method: 'POST'
-      });
+  try {
+    const r = await fetch(`${API}/api/orders/${encodeURIComponent(id)}/confirm`, {
+      method: 'POST'
+    });
 
-      const txt = await r.text();
-      if (!r.ok) {
-        console.error('Error confirmando orden', r.status, txt);
-        alert(`❌ Error confirmando (${r.status}): ${txt}`);
-        return;
-      }
-
-      alert(`✅ Orden #${orderNumber || id} confirmada`);
-      await loadOrders();
-      await load();
-    } catch (err) {
-      console.error('Error:', err);
-      alert('❌ Error de conexión');
+    const txt = await r.text();
+    if (!r.ok) {
+      console.error('Error confirmando orden', r.status, txt);
+      alert(`❌ Error confirmando (${r.status}): ${txt}`);
+      return;
     }
-  }
 
-  async function cancelOrder(id, orderNumber) {
-    if (!confirm(`¿Cancelar la orden #${orderNumber || id}?`)) return;
-
-    try {
-      const r = await fetch(`${API}/api/orders/${encodeURIComponent(id)}/cancel`, {
-        method: 'POST'
-      });
-
-      const txt = await r.text();
-      if (!r.ok) {
-        alert(`❌ Error cancelando (${r.status}): ${txt}`);
-        return;
-      }
-
-      alert(`✅ Orden #${orderNumber || id} cancelada`);
-      await loadOrders();
-    } catch (err) {
-      console.error('Error:', err);
-      alert('❌ Error de conexión');
+    alert(`✅ Orden #${orderNumber || id} confirmada`);
+    
+    // Recargar todo
+    await loadOrders();
+    await load();
+    
+    // NUEVO: Refrescar el dashboard si estamos en esa pestaña
+    const dashboardSection = document.getElementById('section-dashboard');
+    if (dashboardSection && dashboardSection.style.display !== 'none') {
+      await loadDashboard();
     }
+    
+  } catch (err) {
+    console.error('Error:', err);
+    alert('❌ Error de conexión');
   }
+}
 
+async function cancelOrder(id, orderNumber) {
+  if (!confirm(`¿Cancelar la orden #${orderNumber || id}?`)) return;
+
+  try {
+    const r = await fetch(`${API}/api/orders/${encodeURIComponent(id)}/cancel`, {
+      method: 'POST'
+    });
+
+    const txt = await r.text();
+    if (!r.ok) {
+      alert(`❌ Error cancelando (${r.status}): ${txt}`);
+      return;
+    }
+
+    alert(`✅ Orden #${orderNumber || id} cancelada`);
+    
+    // Recargar órdenes
+    await loadOrders();
+    
+    // NUEVO: Refrescar el dashboard si estamos en esa pestaña
+    const dashboardSection = document.getElementById('section-dashboard');
+    if (dashboardSection && dashboardSection.style.display !== 'none') {
+      await loadDashboard();
+    }
+    
+  } catch (err) {
+    console.error('Error:', err);
+    alert('❌ Error de conexión');
+  }
+}
+ 
   // =============== REPORTES ===============
   async function showReports() {
     const from = $('fromDate')?.value;
